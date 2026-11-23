@@ -112,7 +112,7 @@ UI、ViewModel、数据库不需要改动。
 
 - 零依赖 Node.js，`createApp()` 返回纯 `http.RequestListener`，便于测试时监听随机端口。
 - `jwt.mjs`：HS256 签名与校验，校验 `exp`、`nbf`、`iss`，使用 `timingSafeEqual` 防时序攻击。
-- `usersig.mjs`：按腾讯云 UserSig 算法生成（HMAC-SHA256 → zlib → Base64），签名密钥只来自环境变量。
+- `usersig.mjs`：按腾讯云官方 TLSSigAPIv2 算法生成（HMAC-SHA256 签名 → JSON deflate → Base64URL 变体），并用官方 `tls-sig-api-v2` 参考实现（`vendor/TLSSigAPIv2.cjs`）在单测中交叉验证；签名密钥只来自环境变量。
 - `store.mjs`：短信验证码状态机，5 分钟过期、60 秒重发冷却、5 次尝试上限、一次性使用。
 - 错误统一为 `{ error: { code, message, requestId } }`，不泄露内部堆栈。
 - JSON body 限制 64KB；所有响应带 CORS 与 `requestId`。
