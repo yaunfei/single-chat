@@ -2,8 +2,17 @@ package com.yaunfei.singlechat.core.chat
 
 import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
+import com.yaunfei.singlechat.core.model.LocalUser
 import com.yaunfei.singlechat.core.model.Message
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+
+enum class ChatConnectionState {
+    OFFLINE,
+    CONNECTING,
+    ONLINE,
+    FAILED,
+}
 
 /**
  * 消息能力的唯一边界。
@@ -35,4 +44,10 @@ interface ChatEngine {
     suspend fun deleteConversation(conversationId: String)
 
     suspend fun availableContacts(): List<Contact>
+
+    fun observeConnectionState(): Flow<ChatConnectionState> = flowOf(ChatConnectionState.ONLINE)
+
+    fun currentUserId(): String? = LocalUser.ID
+
+    suspend fun signOut() = Unit
 }

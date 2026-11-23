@@ -2,15 +2,18 @@ package com.yaunfei.singlechat.feature.conversations
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yaunfei.singlechat.core.chat.ChatConnectionState
 import com.yaunfei.singlechat.core.chat.ChatEngine
 import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,6 +34,13 @@ class ConversationListViewModel @Inject constructor(
 
     private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
     val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
+
+    val connectionState: StateFlow<ChatConnectionState> = engine.observeConnectionState()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ChatConnectionState.CONNECTING,
+        )
 
     init {
         viewModelScope.launch {
@@ -71,6 +81,19 @@ class ConversationListViewModel @Inject constructor(
     fun createConversation(contact: Contact, onCreated: (String) -> Unit) {
         viewModelScope.launch {
             val conversationId = engine.createConversation(contact)
+            _contacts.value = engine.availableContacts()
+            onCreated(conversationId)
+        }
+    }
+
+    fun createConversationById(rawPeerId: String, onCreated: (String) -> Unit) {
+        val peerId = rawPeerId.trim()
+        if (peerId.isEmpty()) return
+        viewModelScope.launch {
+            val conversationId = engine.createConversation(
+                Contact(id = peerId, name = peerId, bio = "通过用户 ID 发起"),
+            )
+            _contacts.value = engine.availableContacts()
             onCreated(conversationId)
         }
     }

@@ -31,4 +31,6 @@ data class MessageEntity(
     val type: String,
     val status: String,
     val createdAt: Long,
+    /** 腾讯云 IM 的 msgID，本地发送与漫游消息用它去重。 */
+    val remoteId: String = "",
 )

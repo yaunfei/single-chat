@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -60,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yaunfei.singlechat.core.chat.ChatConnectionState
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
@@ -74,6 +76,7 @@ fun ConversationListScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
+    val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     var showNewChat by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Conversation?>(null) }
 
@@ -86,7 +89,13 @@ fun ConversationListScreen(
                         Text("消息", style = MaterialTheme.typography.titleLarge)
                         val unread = state.conversations.sumOf { it.unreadCount }
                         Text(
-                            text = if (unread > 0) "$unread 条未读" else "慢慢说，不着急",
+                            text = when {
+                                unread > 0 -> "$unread 条未读"
+                                connectionState == ChatConnectionState.ONLINE -> "云端已连接"
+                                connectionState == ChatConnectionState.CONNECTING -> "正在连接云端…"
+                                connectionState == ChatConnectionState.FAILED -> "云端未连接 · 检查 server"
+                                else -> "离线"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -189,6 +198,12 @@ fun ConversationListScreen(
                 contacts = contacts,
                 onPick = { contact ->
                     viewModel.createConversation(contact) { conversationId ->
+                        showNewChat = false
+                        onOpenChat(conversationId)
+                    }
+                },
+                onCreateById = { peerId ->
+                    viewModel.createConversationById(peerId) { conversationId ->
                         showNewChat = false
                         onOpenChat(conversationId)
                     }
@@ -327,7 +342,10 @@ private fun ConversationRow(
 private fun NewChatSheet(
     contacts: List<Contact>,
     onPick: (Contact) -> Unit,
+    onCreateById: (String) -> Unit,
 ) {
+    var peerId by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,29 +358,71 @@ private fun NewChatSheet(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "选择一个联系人，说第一句话。",
+            text = "输入对方的用户 ID，或从最近联系人中继续。",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
-        Spacer(Modifier.height(12.dp))
-        contacts.forEach { contact ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onPick(contact) }
-                    .padding(horizontal = 24.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        Spacer(Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = peerId,
+                onValueChange = { peerId = it.take(64) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("对方用户 ID，如 u_1a2b3c") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+            Spacer(Modifier.width(10.dp))
+            Button(
+                onClick = { onCreateById(peerId) },
+                enabled = peerId.isNotBlank(),
+                modifier = Modifier.height(56.dp),
+                shape = RoundedCornerShape(16.dp),
             ) {
-                Avatar(seed = contact.id, name = contact.name, size = 46.dp)
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Text(contact.name, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = contact.bio,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Text("开始")
+            }
+        }
+
+        if (contacts.isNotEmpty()) {
+            Spacer(Modifier.height(18.dp))
+            Text(
+                text = "最近联系人",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+            Spacer(Modifier.height(4.dp))
+            contacts.forEach { contact ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onPick(contact) }
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Avatar(seed = contact.id, name = contact.name, size = 46.dp)
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(contact.name, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = contact.bio,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

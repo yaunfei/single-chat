@@ -60,6 +60,12 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
         viewModel.clearError()
     }
 
+    LaunchedEffect(state.notice) {
+        val message = state.notice ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearNotice()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -160,6 +166,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                         ) {
                             Text(
                                 text = when {
+                                    state.isRequestingCode -> "发送中…"
                                     state.countdown > 0 -> "${state.countdown}s"
                                     state.codeSent -> "重新获取"
                                     else -> "获取验证码"
@@ -196,7 +203,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
 
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "M0 本地演示 · 无需连接服务器\n任意大陆手机号 + 验证码 123456",
+                text = "M1 云端登录 · 需要先启动本地 server\n开发态会自动回显并填入验证码",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

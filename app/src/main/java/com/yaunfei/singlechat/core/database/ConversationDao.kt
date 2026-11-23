@@ -47,4 +47,10 @@ interface ConversationDao {
 
     @Query("SELECT COUNT(*) FROM conversations")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM conversations")
+    suspend fun listAll(): List<ConversationEntity>
+
+    @Query("DELETE FROM conversations")
+    suspend fun deleteAll()
 }

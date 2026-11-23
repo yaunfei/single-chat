@@ -28,7 +28,12 @@ class AppViewModel @Inject constructor(
         preferences.session,
         preferences.themeMode,
     ) { session, themeMode ->
-        AppUiState(loading = false, session = session, themeMode = themeMode)
+        // M0 遗留的本地会话没有 token，视为未登录，引导用户走真实登录。
+        AppUiState(
+            loading = false,
+            session = session?.takeIf { it.token.isNotBlank() },
+            themeMode = themeMode,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,

@@ -1,5 +1,10 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// 默认指向宿主机上的 BFF；模拟器用 10.0.2.2 访问宿主机。
+// 可用 -Psinglechat.backendBaseUrl=http://x.x.x.x:8787 覆盖。
+val backendBaseUrl = (project.findProperty("singlechat.backendBaseUrl") as String?)
+    ?: "http://10.0.2.2:8787"
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,8 +21,16 @@ android {
         applicationId = "com.yaunfei.singlechat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+
+        buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
+        buildConfigField("int", "IM_SDK_APP_ID", "1600174706")
+
+        ndk {
+            // 腾讯云 IM 只随包携带主流 ABI，避免 APK 体积翻倍。
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -80,6 +93,8 @@ dependencies {
 
     implementation(libs.datastore.preferences)
     implementation(libs.coroutines.android)
+
+    implementation(libs.tencent.imsdk)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

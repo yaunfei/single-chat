@@ -9,3 +9,8 @@
 
 # Kotlin 元数据
 -keepattributes *Annotation*, InnerClasses, Signature
+
+# 腾讯云 IM：SDK 通过反射与 JNI 回调，必须整体保留
+-keep class com.tencent.imsdk.** { *; }
+-keep class com.tencent.imsdk.v2.** { *; }
+-dontwarn com.tencent.imsdk.**

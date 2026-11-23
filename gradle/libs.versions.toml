@@ -11,6 +11,7 @@ navigation = "2.8.5"
 room = "2.6.1"
 datastore = "1.1.1"
 coroutines = "1.9.0"
+tencentImsdk = "8.7.7201"
 junit = "4.13.2"
 
 [libraries]
@@ -40,6 +41,7 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+tencent-imsdk = { module = "com.tencent.imsdk:imsdk-plus", version.ref = "tencentImsdk" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

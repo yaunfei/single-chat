@@ -21,6 +21,16 @@ Base URL：`http://localhost:8787`（开发默认值）
 - 时间字段均为 Unix 毫秒或秒，接口中会显式标注。
 - 生产环境必须配置 `JWT_SECRET` 与 `IM_SECRET_KEY`；开发环境允许使用 `.env.example` 中的占位值。
 
+## 客户端接入顺序（M1）
+
+1. `POST /api/v1/auth/sms` 获取验证码（开发态响应带 `devCode`）。
+2. `POST /api/v1/auth/login` 换取 `token` 与用户信息，保存 Session。
+3. `GET /api/v1/im/usersig`（Bearer token）换取 `userId` + `userSig`。
+4. 客户端 `initSDK(sdkAppId)` 后 `login(userId, userSig)`，之后所有消息走腾讯云 IM。
+5. `userSig` 到期前重新请求；`token` 失效时回到登录页。
+
+> `IM_SDK_APP_ID` 必须与客户端 `BuildConfig.IM_SDK_APP_ID` 一致；`IM_SECRET_KEY` 永远不下发。
+
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |
@@ -119,7 +129,7 @@ Base URL：`http://localhost:8787`（开发默认值）
 
 ## POST /api/v1/push/token
 
-需要登录。注册或更新设备推送 token（M1 使用）。
+需要登录。注册或更新设备推送 token（M3 推送接入时使用）。
 
 请求：
 

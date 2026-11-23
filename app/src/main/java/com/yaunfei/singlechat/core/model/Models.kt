@@ -9,6 +9,8 @@ data class Session(
     val userId: String,
     val displayName: String,
     val phone: String,
+    /** BFF 签发的登录凭证，M1 阶段明文保存在 DataStore 中。 */
+    val token: String = "",
 )
 
 enum class ThemeMode {
@@ -51,9 +53,8 @@ data class Message(
     val type: MessageType,
     val status: MessageStatus,
     val createdAt: Long,
-) {
-    val isMine: Boolean get() = senderId == LocalUser.ID
-}
+    val isMine: Boolean = senderId == LocalUser.ID,
+)
 
 data class Contact(
     val id: String,

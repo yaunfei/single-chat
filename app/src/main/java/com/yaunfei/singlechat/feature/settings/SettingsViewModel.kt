@@ -2,6 +2,7 @@ package com.yaunfei.singlechat.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yaunfei.singlechat.core.chat.ChatEngine
 import com.yaunfei.singlechat.core.data.PreferencesRepository
 import com.yaunfei.singlechat.core.model.Session
 import com.yaunfei.singlechat.core.model.ThemeMode
@@ -21,6 +22,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val preferences: PreferencesRepository,
+    private val engine: ChatEngine,
 ) : ViewModel() {
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -39,6 +41,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch { preferences.clearSession() }
+        viewModelScope.launch {
+            runCatching { engine.signOut() }
+            preferences.clearSession()
+        }
     }
 }

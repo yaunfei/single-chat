@@ -3,7 +3,7 @@ package com.yaunfei.singlechat.core.di
 import android.content.Context
 import androidx.room.Room
 import com.yaunfei.singlechat.core.chat.ChatEngine
-import com.yaunfei.singlechat.core.chat.LocalChatEngine
+import com.yaunfei.singlechat.core.chat.TencentChatEngine
 import com.yaunfei.singlechat.core.database.AppDatabase
 import com.yaunfei.singlechat.core.database.ConversationDao
 import com.yaunfei.singlechat.core.database.MessageDao
@@ -31,7 +31,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "single-chat.db")
-            .fallbackToDestructiveMigration()
+            .addMigrations(AppDatabase.MIGRATION_1_2)
             .build()
 
     @Provides
@@ -52,5 +52,5 @@ abstract class ChatEngineModule {
 
     @Binds
     @Singleton
-    abstract fun bindChatEngine(engine: LocalChatEngine): ChatEngine
+    abstract fun bindChatEngine(engine: TencentChatEngine): ChatEngine
 }

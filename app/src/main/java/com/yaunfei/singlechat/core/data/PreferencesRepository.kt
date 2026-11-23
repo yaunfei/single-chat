@@ -15,6 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.singleChatDataStore by preferencesDataStore(name = "single_chat_prefs")
@@ -28,6 +29,8 @@ class PreferencesRepository @Inject constructor(
         val UserId = stringPreferencesKey("user_id")
         val DisplayName = stringPreferencesKey("display_name")
         val Phone = stringPreferencesKey("phone")
+        val AuthToken = stringPreferencesKey("auth_token")
+        val ImUserId = stringPreferencesKey("im_user_id")
         val ThemeMode = stringPreferencesKey("theme_mode")
     }
 
@@ -43,19 +46,27 @@ class PreferencesRepository @Inject constructor(
             userId = userId,
             displayName = prefs[Keys.DisplayName] ?: LocalUser.NAME,
             phone = prefs[Keys.Phone].orEmpty(),
+            token = prefs[Keys.AuthToken].orEmpty(),
         )
     }
+
+    val imUserId: Flow<String?> = preferences.map { it[Keys.ImUserId] }
 
     val themeMode: Flow<ThemeMode> = preferences.map { prefs ->
         runCatching { ThemeMode.valueOf(prefs[Keys.ThemeMode] ?: ThemeMode.SYSTEM.name) }
             .getOrDefault(ThemeMode.SYSTEM)
     }
 
+    suspend fun currentSession(): Session? = session.first()
+
+    suspend fun currentImUserId(): String? = imUserId.first()
+
     suspend fun saveSession(session: Session) {
         dataStore.edit { prefs ->
             prefs[Keys.UserId] = session.userId
             prefs[Keys.DisplayName] = session.displayName
             prefs[Keys.Phone] = session.phone
+            prefs[Keys.AuthToken] = session.token
         }
     }
 
@@ -64,7 +75,12 @@ class PreferencesRepository @Inject constructor(
             prefs.remove(Keys.UserId)
             prefs.remove(Keys.DisplayName)
             prefs.remove(Keys.Phone)
+            prefs.remove(Keys.AuthToken)
         }
+    }
+
+    suspend fun saveImUserId(userId: String) {
+        dataStore.edit { prefs -> prefs[Keys.ImUserId] = userId }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {

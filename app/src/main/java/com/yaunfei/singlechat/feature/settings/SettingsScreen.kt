@@ -99,10 +99,10 @@ fun SettingsScreen(
                 tonalElevation = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                    Text("本地演示引擎", style = MaterialTheme.typography.titleMedium)
+                    Text("腾讯云 IM（M1）", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "M0 · 消息仅保存在本机。接入腾讯云 IM 只需替换 ChatEngine 实现。",
+                        text = "实时消息通过腾讯云 IM 递送，UserSig 由本地 BFF 签发；SecretKey 只留在服务端。",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,7 +119,7 @@ fun SettingsScreen(
                 Column {
                     SettingRow(title = "版本", subtitle = "Single Chat ${BuildConfig.VERSION_NAME}")
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(title = "阶段", subtitle = "M0 · 可运行骨架")
+                    SettingRow(title = "阶段", subtitle = "M1 · 云端连通")
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     SettingRow(title = "设计原则", subtitle = "把通道交给 PaaS，把体验留给自己")
                 }
@@ -205,7 +205,7 @@ private fun ProfileCard(session: Session?) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "本地演示账号",
+                    text = "腾讯云 IM · M1 · ${session?.userId ?: "未登录"}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
