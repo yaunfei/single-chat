@@ -31,10 +31,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showServerSettings by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.error) {
         val message = state.error ?: return@LaunchedEffect
@@ -123,6 +127,47 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 shadowElevation = 10.dp,
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
+                    TextButton(
+                        onClick = { showServerSettings = !showServerSettings },
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(
+                            text = if (showServerSettings) "收起服务器设置" else "服务器设置",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    if (showServerSettings) {
+                        FieldLabel("BFF 服务器地址")
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.serverUrl,
+                            onValueChange = viewModel::onServerUrlChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("https://your-bff.example.com") },
+                            singleLine = true,
+                            shape = MaterialTheme.shapes.small,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Uri,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { viewModel.saveServerUrl() }),
+                            colors = fieldColors(),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "直连失败时可更新此地址",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = viewModel::saveServerUrl) { Text("保存") }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+
                     FieldLabel("手机号")
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(

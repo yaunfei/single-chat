@@ -2,6 +2,7 @@ package com.yaunfei.singlechat.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yaunfei.singlechat.BuildConfig
 import com.yaunfei.singlechat.core.chat.ChatEngine
 import com.yaunfei.singlechat.core.data.PreferencesRepository
 import com.yaunfei.singlechat.core.model.Session
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val session: Session? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val serverBaseUrl: String = BuildConfig.BACKEND_BASE_URL,
 )
 
 @HiltViewModel
@@ -28,13 +30,29 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         preferences.session,
         preferences.themeMode,
-    ) { session, themeMode ->
-        SettingsUiState(session = session, themeMode = themeMode)
+        preferences.serverBaseUrl,
+    ) { session, themeMode, serverBaseUrl ->
+        SettingsUiState(
+            session = session,
+            themeMode = themeMode,
+            serverBaseUrl = serverBaseUrl.ifBlank { BuildConfig.BACKEND_BASE_URL },
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = SettingsUiState(),
     )
+
+    fun saveServerBaseUrl(value: String) {
+        val normalized = value.trim().trimEnd('/')
+        if (normalized.isNotBlank() &&
+            !normalized.startsWith("http://") &&
+            !normalized.startsWith("https://")
+        ) {
+            return
+        }
+        viewModelScope.launch { preferences.saveServerBaseUrl(normalized) }
+    }
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { preferences.setThemeMode(mode) }

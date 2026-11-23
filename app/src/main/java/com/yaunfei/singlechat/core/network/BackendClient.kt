@@ -1,6 +1,7 @@
 package com.yaunfei.singlechat.core.network
 
 import com.yaunfei.singlechat.BuildConfig
+import com.yaunfei.singlechat.core.data.PreferencesRepository
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -48,7 +49,9 @@ class BackendException(
  * SecretKey 只存在于服务端，客户端拿到的永远是短期 UserSig。
  */
 @Singleton
-class BackendClient @Inject constructor() {
+class BackendClient @Inject constructor(
+    private val preferences: PreferencesRepository,
+) {
 
     suspend fun requestSms(phone: String): SmsChallenge = withContext(Dispatchers.IO) {
         val body = JSONObject().put("phone", phone)
@@ -91,19 +94,24 @@ class BackendClient @Inject constructor() {
         phone = json.optString("phone"),
     )
 
-    private fun post(path: String, body: JSONObject, token: String?): JSONObject =
+    private suspend fun post(path: String, body: JSONObject, token: String?): JSONObject =
         request(path, method = "POST", token = token, body = body)
 
-    private fun get(path: String, token: String?): JSONObject =
+    private suspend fun get(path: String, token: String?): JSONObject =
         request(path, method = "GET", token = token, body = null)
 
-    private fun request(
+    /** 优先使用登录页/设置页保存的地址，方便手机调试时切换隧道。 */
+    suspend fun effectiveBaseUrl(): String =
+        preferences.currentServerBaseUrl().ifBlank { BuildConfig.BACKEND_BASE_URL }.trimEnd('/')
+
+    private suspend fun request(
         path: String,
         method: String,
         token: String?,
         body: JSONObject?,
     ): JSONObject {
-        val url = URL(BuildConfig.BACKEND_BASE_URL.trimEnd('/') + path)
+        val baseUrl = effectiveBaseUrl()
+        val url = URL(baseUrl + path)
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = TIMEOUT_MS
@@ -136,7 +144,7 @@ class BackendClient @Inject constructor() {
             throw BackendException("服务器返回了无法解析的数据", code = "BAD_RESPONSE")
         } catch (error: IOException) {
             throw BackendException(
-                message = "无法连接服务器，请确认 BFF 已启动（${BuildConfig.BACKEND_BASE_URL}）",
+                message = "无法连接服务器（$baseUrl），请在登录页「服务器设置」中检查或修改地址",
                 code = "NETWORK",
             )
         } finally {

@@ -2,6 +2,7 @@ package com.yaunfei.singlechat.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yaunfei.singlechat.BuildConfig
 import com.yaunfei.singlechat.core.data.PreferencesRepository
 import com.yaunfei.singlechat.core.model.Session
 import com.yaunfei.singlechat.core.network.BackendClient
@@ -24,6 +25,7 @@ data class LoginUiState(
     val isRequestingCode: Boolean = false,
     val isLoggingIn: Boolean = false,
     val codeSent: Boolean = false,
+    val serverUrl: String = BuildConfig.BACKEND_BASE_URL,
     val error: String? = null,
     val notice: String? = null,
 ) {
@@ -44,6 +46,39 @@ class LoginViewModel @Inject constructor(
 
     private var countdownJob: Job? = null
 
+    init {
+        viewModelScope.launch {
+            val saved = preferences.currentServerBaseUrl()
+            if (saved.isNotBlank()) {
+                _state.update { it.copy(serverUrl = saved) }
+            }
+        }
+    }
+
+    fun onServerUrlChange(value: String) {
+        _state.update { it.copy(serverUrl = value, error = null) }
+    }
+
+    /** 保存并立即生效；留空则恢复默认地址。 */
+    fun saveServerUrl() {
+        val raw = _state.value.serverUrl.trim()
+        val normalized = if (raw.isBlank()) BuildConfig.BACKEND_BASE_URL else normalizeServerUrl(raw)
+        if (normalized == null) {
+            _state.update { it.copy(error = "服务器地址需以 http:// 或 https:// 开头") }
+            return
+        }
+        viewModelScope.launch {
+            preferences.saveServerBaseUrl(normalized)
+            _state.update { it.copy(serverUrl = normalized, notice = "服务器地址已保存") }
+        }
+    }
+
+    private fun normalizeServerUrl(raw: String): String? {
+        val value = raw.trim().trimEnd('/')
+        if (!value.startsWith("http://") && !value.startsWith("https://")) return null
+        return value.takeIf { it.length > "https://".length }
+    }
+
     fun onPhoneChange(value: String) {
         val digits = value.filter(Char::isDigit).take(11)
         _state.update { it.copy(phone = digits, error = null) }
@@ -62,8 +97,15 @@ class LoginViewModel @Inject constructor(
         }
         if (current.countdown > 0 || current.isRequestingCode) return
 
+        val serverUrl = normalizeServerUrl(current.serverUrl)
+        if (serverUrl == null) {
+            _state.update { it.copy(error = "服务器地址需以 http:// 或 https:// 开头") }
+            return
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isRequestingCode = true, error = null) }
+            preferences.saveServerBaseUrl(serverUrl)
             runCatching { backend.requestSms(current.phone) }
                 .onSuccess { challenge ->
                     val devCode = challenge.devCode
@@ -105,8 +147,15 @@ class LoginViewModel @Inject constructor(
         }
         if (current.isLoggingIn) return
 
+        val serverUrl = normalizeServerUrl(current.serverUrl)
+        if (serverUrl == null) {
+            _state.update { it.copy(error = "服务器地址需以 http:// 或 https:// 开头") }
+            return
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoggingIn = true, error = null) }
+            preferences.saveServerBaseUrl(serverUrl)
             runCatching { backend.login(current.phone, current.code) }
                 .onSuccess { auth ->
                     preferences.saveSession(

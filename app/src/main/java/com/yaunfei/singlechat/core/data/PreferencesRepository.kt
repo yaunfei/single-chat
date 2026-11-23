@@ -32,6 +32,7 @@ class PreferencesRepository @Inject constructor(
         val AuthToken = stringPreferencesKey("auth_token")
         val ImUserId = stringPreferencesKey("im_user_id")
         val ThemeMode = stringPreferencesKey("theme_mode")
+        val ServerBaseUrl = stringPreferencesKey("server_base_url")
     }
 
     private val dataStore = context.singleChatDataStore
@@ -57,7 +58,12 @@ class PreferencesRepository @Inject constructor(
             .getOrDefault(ThemeMode.SYSTEM)
     }
 
+    /** 用户自定义的 BFF 地址；为空表示使用 BuildConfig 中的默认值。 */
+    val serverBaseUrl: Flow<String> = preferences.map { it[Keys.ServerBaseUrl].orEmpty() }
+
     suspend fun currentSession(): Session? = session.first()
+
+    suspend fun currentServerBaseUrl(): String = serverBaseUrl.first()
 
     suspend fun currentImUserId(): String? = imUserId.first()
 
@@ -85,5 +91,16 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { prefs -> prefs[Keys.ThemeMode] = mode.name }
+    }
+
+    suspend fun saveServerBaseUrl(url: String) {
+        val normalized = url.trim().trimEnd('/')
+        dataStore.edit { prefs ->
+            if (normalized.isBlank()) {
+                prefs.remove(Keys.ServerBaseUrl)
+            } else {
+                prefs[Keys.ServerBaseUrl] = normalized
+            }
+        }
     }
 }
