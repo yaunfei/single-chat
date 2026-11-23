@@ -216,6 +216,12 @@ class BackendClient @Inject constructor(
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
 
             if (status !in 200..299) {
+                // 502/503/504 多为免费隧道地址过期（边缘节点还在，转发已失效）：
+                // 回源 GitHub 拿新地址后重试一次。
+                if (status in 502..504 && !retried && refreshRemoteConfig()) {
+                    connection.disconnect()
+                    return request(path, method, token, body, retried = true)
+                }
                 throw parseError(text, status)
             }
             return if (text.isBlank()) JSONObject() else JSONObject(text)
