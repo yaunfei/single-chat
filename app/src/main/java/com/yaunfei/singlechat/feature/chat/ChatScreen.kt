@@ -43,6 +43,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -84,6 +88,12 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val typing by viewModel.isTyping.collectAsStateWithLifecycle()
     val draft by viewModel.draft.collectAsStateWithLifecycle()
+    val sendError by viewModel.sendError.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(sendError) {
+        sendError?.let { snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long) }
+    }
 
     val items = remember(messages) { buildChatItems(messages) }
     val listState = rememberLazyListState()
@@ -103,6 +113,7 @@ fun ChatScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data) } },
         topBar = { ChatTopBar(conversation = conversation, onBack = onBack) },
         bottomBar = {
             ChatComposer(

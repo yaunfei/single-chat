@@ -42,6 +42,13 @@ class ConversationListViewModel @Inject constructor(
             initialValue = ChatConnectionState.CONNECTING,
         )
 
+    val connectionDetail: StateFlow<String?> = engine.observeConnectionDetail()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
     init {
         viewModelScope.launch {
             engine.ensureSeeded()

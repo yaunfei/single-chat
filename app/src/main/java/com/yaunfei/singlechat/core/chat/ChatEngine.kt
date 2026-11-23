@@ -47,6 +47,12 @@ interface ChatEngine {
 
     fun observeConnectionState(): Flow<ChatConnectionState> = flowOf(ChatConnectionState.ONLINE)
 
+    /** 连接失败的详细信息（含 IM 错误码），便于手机端排查。 */
+    fun observeConnectionDetail(): Flow<String?> = flowOf(null)
+
+    /** 最近一次发送失败的详细信息（含 IM 错误码）。 */
+    fun observeLastSendError(): Flow<String?> = flowOf(null)
+
     fun currentUserId(): String? = LocalUser.ID
 
     suspend fun signOut() = Unit

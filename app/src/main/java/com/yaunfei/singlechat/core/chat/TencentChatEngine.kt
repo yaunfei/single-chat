@@ -73,6 +73,8 @@ class TencentChatEngine @Inject constructor(
 ) : ChatEngine {
 
     private val connectionState = MutableStateFlow(ChatConnectionState.OFFLINE)
+    private val connectionDetail = MutableStateFlow<String?>(null)
+    private val lastSendError = MutableStateFlow<String?>(null)
     private val selfUserId = MutableStateFlow<String?>(null)
     private var selfName: String = LocalUser.NAME
     private val activeConversation = AtomicReference<String?>(null)
@@ -99,6 +101,10 @@ class TencentChatEngine @Inject constructor(
     override fun observeTyping(conversationId: String): Flow<Boolean> = flowOf(false)
 
     override fun observeConnectionState(): Flow<ChatConnectionState> = connectionState
+
+    override fun observeConnectionDetail(): Flow<String?> = connectionDetail
+
+    override fun observeLastSendError(): Flow<String?> = lastSendError
 
     override fun currentUserId(): String? = selfUserId.value
 
@@ -143,8 +149,13 @@ class TencentChatEngine @Inject constructor(
                     }
                 }
                 messageDao.updateRemoteIdAndStatus(localId, remoteId, MessageStatus.SENT.name)
+                lastSendError.value = null
             } catch (error: Exception) {
                 messageDao.updateStatus(localId, MessageStatus.FAILED.name)
+                lastSendError.value = when (error) {
+                    is ImException -> "发送失败 code=${error.code}: ${error.message}"
+                    else -> "发送失败: ${error.message ?: error::class.simpleName}"
+                }
             }
         }
     }
@@ -164,8 +175,13 @@ class TencentChatEngine @Inject constructor(
                 )
                 val remoteId = sent.msgID.orEmpty()
                 messageDao.updateRemoteIdAndStatus(messageId, remoteId, MessageStatus.SENT.name)
+                lastSendError.value = null
             } catch (error: Exception) {
                 messageDao.updateStatus(messageId, MessageStatus.FAILED.name)
+                lastSendError.value = when (error) {
+                    is ImException -> "重发失败 code=${error.code}: ${error.message}"
+                    else -> "重发失败: ${error.message ?: error::class.simpleName}"
+                }
             }
         }
     }
@@ -296,9 +312,14 @@ class TencentChatEngine @Inject constructor(
             selfUserId.value = ticket.userId
             registerListeners()
             connectionState.value = ChatConnectionState.ONLINE
+            connectionDetail.value = null
             runCatching { syncConversations() }
         } catch (error: Exception) {
             connectionState.value = ChatConnectionState.FAILED
+            connectionDetail.value = when (error) {
+                is ImException -> "IM登录失败 code=${error.code}: ${error.message}"
+                else -> "连接失败: ${error.message ?: error::class.simpleName}"
+            }
         }
     }
 

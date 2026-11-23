@@ -77,6 +77,7 @@ fun ConversationListScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
+    val connectionDetail by viewModel.connectionDetail.collectAsStateWithLifecycle()
     var showNewChat by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Conversation?>(null) }
 
@@ -93,7 +94,8 @@ fun ConversationListScreen(
                                 unread > 0 -> "$unread 条未读"
                                 connectionState == ChatConnectionState.ONLINE -> "云端已连接"
                                 connectionState == ChatConnectionState.CONNECTING -> "正在连接云端…"
-                                connectionState == ChatConnectionState.FAILED -> "云端未连接 · 检查 server"
+                                connectionState == ChatConnectionState.FAILED ->
+                                    connectionDetail ?: "云端未连接 · 检查 server"
                                 else -> "离线"
                             },
                             style = MaterialTheme.typography.labelSmall,

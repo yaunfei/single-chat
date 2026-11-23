@@ -35,6 +35,9 @@ class ChatViewModel @Inject constructor(
     val isTyping: StateFlow<Boolean> = engine.observeTyping(conversationId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    val sendError: StateFlow<String?> = engine.observeLastSendError()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     init {
         engine.setActiveConversation(conversationId)
         viewModelScope.launch { engine.markRead(conversationId) }
