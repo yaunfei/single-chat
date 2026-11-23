@@ -1,0 +1,15 @@
+{
+  "name": "single-chat-bff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single Chat 的零依赖 BFF：短信登录、JWT、腾讯云 UserSig、推送 token",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test",
+    "check": "node --check src/config.mjs && node --check src/jwt.mjs && node --check src/usersig.mjs && node --check src/store.mjs && node --check src/app.mjs && node --check src/server.mjs"
+  }
+}
