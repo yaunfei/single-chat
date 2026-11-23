@@ -9,7 +9,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -114,16 +113,15 @@ class BackendClient @Inject constructor(
      * JSON，客户端连接失败时会自动回源，用户无需重装或改设置。
      */
     suspend fun refreshRemoteConfig(): Boolean = withContext(Dispatchers.IO) {
-        // 优先用 commit SHA 读文件：SHA 是 immutable 的，不会被 CDN 缓存成旧内容；
-        // 分支名则可能被缓存十几分钟。
-        val sources = buildList {
-            latestCommitSha()?.let {
-                add("https://raw.githubusercontent.com/yaunfei/single-chat/$it/config/backend.json")
-            }
-            val stamp = System.currentTimeMillis()
-            add("https://raw.githubusercontent.com/yaunfei/single-chat/main/config/backend.json?t=$stamp")
-            add("https://cdn.jsdelivr.net/gh/yaunfei/single-chat@main/config/backend.json?t=$stamp")
-        }
+        // 国内直连 raw.githubusercontent.com / api.github.com 经常不通，
+        // 优先走国内可达的 GitHub 加速镜像（实测实时无缓存），最后才回退官方 raw。
+        val stamp = System.currentTimeMillis()
+        val raw = "https://raw.githubusercontent.com/yaunfei/single-chat/main/config/backend.json"
+        val sources = listOf(
+            "https://ghfast.top/$raw?t=$stamp",
+            "https://ghproxy.net/$raw?t=$stamp",
+            "$raw?t=$stamp",
+        )
         for (url in sources) {
             val baseUrl = runCatching { fetchRemoteBaseUrl(url) }.getOrNull()
             // CDN 可能缓存了旧地址，必须探活通过才采用。
@@ -134,24 +132,6 @@ class BackendClient @Inject constructor(
         }
         false
     }
-
-    private fun latestCommitSha(): String? = runCatching {
-        val connection =
-            (URL("https://api.github.com/repos/yaunfei/single-chat/commits?sha=main&per_page=1")
-                .openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = CONFIG_TIMEOUT_MS
-                readTimeout = CONFIG_TIMEOUT_MS
-                setRequestProperty("Accept", "application/vnd.github+json")
-            }
-        try {
-            if (connection.responseCode !in 200..299) return null
-            val text = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            JSONArray(text).optJSONObject(0)?.optString("sha")?.takeIf { it.length >= 7 }
-        } finally {
-            connection.disconnect()
-        }
-    }.getOrNull()
 
     private fun isReachable(baseUrl: String): Boolean = runCatching {
         val connection = (URL("$baseUrl/healthz").openConnection() as HttpURLConnection).apply {
