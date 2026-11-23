@@ -135,6 +135,9 @@ class TencentChatEngine @Inject constructor(
 
         scope.launch {
             try {
+                if (connectionState.value != ChatConnectionState.ONLINE) {
+                    runCatching { bootstrap() }
+                }
                 val sent = sendImMessage(
                     text = clean,
                     receiverUserId = conversation.peerId.takeIf { !conversation.isGroup },
@@ -168,6 +171,9 @@ class TencentChatEngine @Inject constructor(
 
         scope.launch {
             try {
+                if (connectionState.value != ChatConnectionState.ONLINE) {
+                    runCatching { bootstrap() }
+                }
                 val sent = sendImMessage(
                     text = message.text,
                     receiverUserId = conversation.peerId.takeIf { !conversation.isGroup },
@@ -276,6 +282,9 @@ class TencentChatEngine @Inject constructor(
     // ---------------------------------------------------------------------
 
     private suspend fun bootstrap() = bootstrapMutex.withLock {
+        // 已在线就不再重复握手（ensureSeeded 会在每次进入会话列表时被调用）。
+        if (connectionState.value == ChatConnectionState.ONLINE) return@withLock
+
         val session = preferences.currentSession()
         if (session == null || session.token.isBlank()) {
             connectionState.value = ChatConnectionState.OFFLINE
@@ -286,9 +295,23 @@ class TencentChatEngine @Inject constructor(
         selfName = session.displayName
 
         try {
-            val ticket = cachedTicket
-                ?.takeIf { it.expireAt == 0L || it.expireAt > System.currentTimeMillis() / 1000 + 60 }
-                ?: backend.fetchUserSig(session.token).also { cachedTicket = it }
+            val usable: (UserSigTicket) -> Boolean = { ticket ->
+                ticket.expireAt == 0L ||
+                    ticket.expireAt > System.currentTimeMillis() / 1000 + SIG_REFRESH_MARGIN_S
+            }
+            // 优先在线获取新签名；BFF 暂时不可达时退回本地缓存（7 天有效期），
+            // 保证隧道抖动/轮换不阻塞 IM 初始化与登录。
+            val ticket = try {
+                backend.fetchUserSig(session.token).also { fresh ->
+                    cachedTicket = fresh
+                    preferences.saveImTicket(fresh)
+                }
+            } catch (error: Exception) {
+                cachedTicket?.takeIf(usable)
+                    ?: preferences.currentImTicket()
+                        ?.takeIf { it.userId == session.userId && usable(it) }
+                    ?: throw error
+            }
 
             ensureSdkInitialized(ticket.sdkAppId)
             val loginUser = V2TIMManager.getInstance().getLoginUser()
@@ -323,13 +346,16 @@ class TencentChatEngine @Inject constructor(
         }
     }
 
-    private fun ensureSdkInitialized(sdkAppId: Int) {
+    private suspend fun ensureSdkInitialized(sdkAppId: Int) {
         if (sdkInitialized.get()) return
         val config = V2TIMSDKConfig().apply {
             logLevel = V2TIMSDKConfig.V2TIM_LOG_INFO
         }
-        // initSDK 返回 false 时通常表示已初始化过，继续 login 即可。
-        V2TIMManager.getInstance().initSDK(context, sdkAppId, config, sdkListener)
+        // initSDK 要求在主线程调用；bootstrap 可能从任意协程触发。
+        withContext(Dispatchers.Main.immediate) {
+            // initSDK 返回 false 时通常表示已初始化过，继续 login 即可。
+            V2TIMManager.getInstance().initSDK(context, sdkAppId, config, sdkListener)
+        }
         sdkInitialized.set(true)
     }
 
@@ -638,5 +664,6 @@ class TencentChatEngine @Inject constructor(
         const val CONVERSATION_PAGE_SIZE = 100
         const val HISTORY_PAGE_SIZE = 50
         const val IM_TIMEOUT_MS = 20_000L
+        const val SIG_REFRESH_MARGIN_S = 60L
     }
 }

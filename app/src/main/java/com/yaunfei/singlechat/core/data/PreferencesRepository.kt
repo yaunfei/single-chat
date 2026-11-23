@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.yaunfei.singlechat.core.model.LocalUser
 import com.yaunfei.singlechat.core.model.Session
 import com.yaunfei.singlechat.core.model.ThemeMode
+import com.yaunfei.singlechat.core.network.UserSigTicket
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
@@ -31,6 +34,9 @@ class PreferencesRepository @Inject constructor(
         val Phone = stringPreferencesKey("phone")
         val AuthToken = stringPreferencesKey("auth_token")
         val ImUserId = stringPreferencesKey("im_user_id")
+        val ImUserSig = stringPreferencesKey("im_user_sig")
+        val ImSigSdkAppId = intPreferencesKey("im_sig_sdk_app_id")
+        val ImSigExpireAt = longPreferencesKey("im_sig_expire_at")
         val ThemeMode = stringPreferencesKey("theme_mode")
         val ServerBaseUrl = stringPreferencesKey("server_base_url")
     }
@@ -87,6 +93,29 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun saveImUserId(userId: String) {
         dataStore.edit { prefs -> prefs[Keys.ImUserId] = userId }
+    }
+
+    /**
+     * 缓存最近一次下发的 UserSig（服务端签发 7 天有效期）。
+     * BFF 临时不可达时，客户端可凭它直接登录 IM（IM 长连接不经过 BFF）。
+     */
+    suspend fun currentImTicket(): UserSigTicket? = preferences.first().let { prefs ->
+        val sig = prefs[Keys.ImUserSig] ?: return null
+        val userId = prefs[Keys.ImUserId] ?: return null
+        UserSigTicket(
+            userId = userId,
+            sdkAppId = prefs[Keys.ImSigSdkAppId] ?: 0,
+            userSig = sig,
+            expireAt = prefs[Keys.ImSigExpireAt] ?: 0L,
+        )
+    }
+
+    suspend fun saveImTicket(ticket: UserSigTicket) {
+        dataStore.edit { prefs ->
+            prefs[Keys.ImUserSig] = ticket.userSig
+            prefs[Keys.ImSigSdkAppId] = ticket.sdkAppId
+            prefs[Keys.ImSigExpireAt] = ticket.expireAt
+        }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
