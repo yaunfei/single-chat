@@ -100,15 +100,67 @@ class BackendClient @Inject constructor(
     private suspend fun get(path: String, token: String?): JSONObject =
         request(path, method = "GET", token = token, body = null)
 
-    /** 优先使用登录页/设置页保存的地址，方便手机调试时切换隧道。 */
+    /** 优先级：用户在设置里手填的地址 > GitHub 下发的地址 > 打包时内置的地址。 */
     suspend fun effectiveBaseUrl(): String =
-        preferences.currentServerBaseUrl().ifBlank { BuildConfig.BACKEND_BASE_URL }.trimEnd('/')
+        preferences.currentServerBaseUrl().ifBlank {
+            preferences.currentRemoteBaseUrl().ifBlank { BuildConfig.BACKEND_BASE_URL }
+        }.trimEnd('/')
+
+    /**
+     * 从 GitHub 拉取最新的 BFF 地址。
+     *
+     * 免费隧道域名会周期性失效，把地址托管在 GitHub 上以后，换隧道只需更新仓库里的
+     * JSON，客户端连接失败时会自动回源，用户无需重装或改设置。
+     */
+    suspend fun refreshRemoteConfig(): Boolean = withContext(Dispatchers.IO) {
+        for (url in CONFIG_SOURCES) {
+            val baseUrl = runCatching { fetchRemoteBaseUrl(url) }.getOrNull()
+            // CDN 可能缓存了旧地址，必须探活通过才采用。
+            if (!baseUrl.isNullOrBlank() && isReachable(baseUrl)) {
+                preferences.saveRemoteBaseUrl(baseUrl)
+                return@withContext true
+            }
+        }
+        false
+    }
+
+    private fun isReachable(baseUrl: String): Boolean = runCatching {
+        val connection = (URL("$baseUrl/healthz").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = HEALTH_TIMEOUT_MS
+            readTimeout = HEALTH_TIMEOUT_MS
+        }
+        try {
+            connection.responseCode in 200..299
+        } finally {
+            connection.disconnect()
+        }
+    }.getOrDefault(false)
+
+    private fun fetchRemoteBaseUrl(url: String): String? {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = CONFIG_TIMEOUT_MS
+            readTimeout = CONFIG_TIMEOUT_MS
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Cache-Control", "no-cache")
+        }
+        try {
+            if (connection.responseCode !in 200..299) return null
+            val text = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val baseUrl = JSONObject(text).optString("baseUrl").trim().trimEnd('/')
+            return baseUrl.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+        } finally {
+            connection.disconnect()
+        }
+    }
 
     private suspend fun request(
         path: String,
         method: String,
         token: String?,
         body: JSONObject?,
+        retried: Boolean = false,
     ): JSONObject {
         val baseUrl = effectiveBaseUrl()
         val url = URL(baseUrl + path)
@@ -143,8 +195,13 @@ class BackendClient @Inject constructor(
         } catch (error: JSONException) {
             throw BackendException("服务器返回了无法解析的数据", code = "BAD_RESPONSE")
         } catch (error: IOException) {
+            // 连接失败多半是隧道地址失效：回源 GitHub 拿新地址后重试一次。
+            connection.disconnect()
+            if (!retried && refreshRemoteConfig()) {
+                return request(path, method, token, body, retried = true)
+            }
             throw BackendException(
-                message = "无法连接服务器（$baseUrl），请在登录页「服务器设置」中检查或修改地址",
+                message = "无法连接服务器（$baseUrl），请检查网络后重试",
                 code = "NETWORK",
             )
         } finally {
@@ -164,5 +221,13 @@ class BackendClient @Inject constructor(
 
     private companion object {
         const val TIMEOUT_MS = 15_000
+        const val CONFIG_TIMEOUT_MS = 8_000
+        const val HEALTH_TIMEOUT_MS = 4_000
+
+        /** 多渠道回源：jsDelivr 国内可达性较好，raw 作为兜底。 */
+        val CONFIG_SOURCES = listOf(
+            "https://cdn.jsdelivr.net/gh/yaunfei/single-chat@main/config/backend.json",
+            "https://raw.githubusercontent.com/yaunfei/single-chat/main/config/backend.json",
+        )
     }
 }

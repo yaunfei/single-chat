@@ -39,6 +39,7 @@ class PreferencesRepository @Inject constructor(
         val ImSigExpireAt = longPreferencesKey("im_sig_expire_at")
         val ThemeMode = stringPreferencesKey("theme_mode")
         val ServerBaseUrl = stringPreferencesKey("server_base_url")
+        val RemoteBaseUrl = stringPreferencesKey("remote_base_url")
     }
 
     private val dataStore = context.singleChatDataStore
@@ -70,6 +71,14 @@ class PreferencesRepository @Inject constructor(
     suspend fun currentSession(): Session? = session.first()
 
     suspend fun currentServerBaseUrl(): String = serverBaseUrl.first()
+
+    /** 从 GitHub 拉取到的最新 BFF 地址（隧道轮换后自动更新）。 */
+    suspend fun currentRemoteBaseUrl(): String =
+        preferences.first()[Keys.RemoteBaseUrl].orEmpty()
+
+    suspend fun saveRemoteBaseUrl(url: String) {
+        dataStore.edit { prefs -> prefs[Keys.RemoteBaseUrl] = url.trim().trimEnd('/') }
+    }
 
     suspend fun currentImUserId(): String? = imUserId.first()
 
