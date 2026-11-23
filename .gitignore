@@ -48,3 +48,4 @@ local-sdk/
 .DS_Store
 Thumbs.db
 *.log
+.run/
