@@ -100,10 +100,15 @@ class BackendClient @Inject constructor(
     private suspend fun get(path: String, token: String?): JSONObject =
         request(path, method = "GET", token = token, body = null)
 
-    /** 优先级：用户在设置里手填的地址 > GitHub 下发的地址 > 打包时内置的地址。 */
+    /**
+     * 优先级：GitHub 下发的地址（经探活）> 用户手填的地址 > 打包内置的地址。
+     *
+     * 手填地址一旦失效会永久挡住自动回源，所以必须让远端地址优先；
+     * 远端地址缺失时才退回手填/内置地址。
+     */
     suspend fun effectiveBaseUrl(): String =
-        preferences.currentServerBaseUrl().ifBlank {
-            preferences.currentRemoteBaseUrl().ifBlank { BuildConfig.BACKEND_BASE_URL }
+        preferences.currentRemoteBaseUrl().ifBlank {
+            preferences.currentServerBaseUrl().ifBlank { BuildConfig.BACKEND_BASE_URL }
         }.trimEnd('/')
 
     /**
