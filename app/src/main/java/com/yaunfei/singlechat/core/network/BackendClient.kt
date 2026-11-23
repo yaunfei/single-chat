@@ -9,6 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -113,7 +114,17 @@ class BackendClient @Inject constructor(
      * JSON，客户端连接失败时会自动回源，用户无需重装或改设置。
      */
     suspend fun refreshRemoteConfig(): Boolean = withContext(Dispatchers.IO) {
-        for (url in CONFIG_SOURCES) {
+        // 优先用 commit SHA 读文件：SHA 是 immutable 的，不会被 CDN 缓存成旧内容；
+        // 分支名则可能被缓存十几分钟。
+        val sources = buildList {
+            latestCommitSha()?.let {
+                add("https://raw.githubusercontent.com/yaunfei/single-chat/$it/config/backend.json")
+            }
+            val stamp = System.currentTimeMillis()
+            add("https://raw.githubusercontent.com/yaunfei/single-chat/main/config/backend.json?t=$stamp")
+            add("https://cdn.jsdelivr.net/gh/yaunfei/single-chat@main/config/backend.json?t=$stamp")
+        }
+        for (url in sources) {
             val baseUrl = runCatching { fetchRemoteBaseUrl(url) }.getOrNull()
             // CDN 可能缓存了旧地址，必须探活通过才采用。
             if (!baseUrl.isNullOrBlank() && isReachable(baseUrl)) {
@@ -123,6 +134,24 @@ class BackendClient @Inject constructor(
         }
         false
     }
+
+    private fun latestCommitSha(): String? = runCatching {
+        val connection =
+            (URL("https://api.github.com/repos/yaunfei/single-chat/commits?sha=main&per_page=1")
+                .openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = CONFIG_TIMEOUT_MS
+                readTimeout = CONFIG_TIMEOUT_MS
+                setRequestProperty("Accept", "application/vnd.github+json")
+            }
+        try {
+            if (connection.responseCode !in 200..299) return null
+            val text = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            JSONArray(text).optJSONObject(0)?.optString("sha")?.takeIf { it.length >= 7 }
+        } finally {
+            connection.disconnect()
+        }
+    }.getOrNull()
 
     private fun isReachable(baseUrl: String): Boolean = runCatching {
         val connection = (URL("$baseUrl/healthz").openConnection() as HttpURLConnection).apply {
@@ -223,11 +252,5 @@ class BackendClient @Inject constructor(
         const val TIMEOUT_MS = 15_000
         const val CONFIG_TIMEOUT_MS = 8_000
         const val HEALTH_TIMEOUT_MS = 4_000
-
-        /** 多渠道回源：jsDelivr 国内可达性较好，raw 作为兜底。 */
-        val CONFIG_SOURCES = listOf(
-            "https://cdn.jsdelivr.net/gh/yaunfei/single-chat@main/config/backend.json",
-            "https://raw.githubusercontent.com/yaunfei/single-chat/main/config/backend.json",
-        )
     }
 }
