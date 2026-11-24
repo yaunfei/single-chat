@@ -206,7 +206,7 @@ fun GlassTabBar(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                    .padding(horizontal = 6.dp, vertical = 7.dp),
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val selected = index == selectedIndex
@@ -220,8 +220,11 @@ fun GlassTabBar(
                         if (selected) {
                             Box(
                                 modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .fillMaxWidth()
+                                    .fillMaxHeight()
                                     .liquidGlass(
-                                        shape = RoundedCornerShape(23.dp),
+                                        shape = RoundedCornerShape(22.dp),
                                         hazeState = hazeState,
                                         tint = if (dark) {
                                             Color(0xF02C2C2E)
@@ -230,8 +233,8 @@ fun GlassTabBar(
                                         },
                                         blurRadius = 18.dp,
                                         elevation = 3.dp,
-                                    )
-                                    .padding(horizontal = 18.dp, vertical = 5.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 TabContent(tab, tint = Accent)
                             }
@@ -252,7 +255,7 @@ private fun TabContent(tab: GlassTab, tint: Color) {
             imageVector = tab.icon,
             contentDescription = tab.label,
             tint = tint,
-            modifier = Modifier.size(21.dp),
+            modifier = Modifier.size(22.dp),
         )
         Spacer(Modifier.height(2.dp))
         Text(

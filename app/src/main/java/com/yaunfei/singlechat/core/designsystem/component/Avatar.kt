@@ -33,7 +33,7 @@ fun Avatar(
     seed: String,
     name: String,
     modifier: Modifier = Modifier,
-    size: Dp = 52.dp,
+    size: Dp = 56.dp,
     isGroup: Boolean = false,
 ) {
     val palette = remember(seed) {

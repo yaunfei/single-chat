@@ -26,10 +26,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -75,9 +75,9 @@ import com.yaunfei.singlechat.core.util.formatConversationTime
 import dev.chrisbanes.haze.HazeState
 
 val MainTabs = listOf(
-    GlassTab("消息", Icons.Filled.Chat),
-    GlassTab("通讯录", Icons.Filled.People),
-    GlassTab("我的", Icons.Filled.Person),
+    GlassTab("消息", Icons.Outlined.ChatBubbleOutline),
+    GlassTab("通讯录", Icons.Outlined.People),
+    GlassTab("我的", Icons.Outlined.Person),
 )
 
 @Composable
@@ -132,7 +132,7 @@ fun ConversationListScreen(
             )
             Spacer(Modifier.weight(1f))
             GlassIconButton(
-                icon = Icons.Filled.Edit,
+                icon = Icons.Filled.FilterList,
                 contentDescription = "新对话",
                 onClick = { showNewChat = true },
             )
@@ -267,7 +267,7 @@ private fun ConversationRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 74.dp)
+                .heightIn(min = 76.dp)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = { menuExpanded = true },
@@ -319,7 +319,7 @@ private fun ConversationRow(
             color = Separator,
             thickness = 0.5.dp,
             modifier = Modifier
-                .padding(start = 82.dp)
+                .padding(start = 86.dp)
                 .align(Alignment.BottomStart),
         )
 

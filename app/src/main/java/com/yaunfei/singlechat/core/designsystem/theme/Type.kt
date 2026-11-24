@@ -33,8 +33,8 @@ val AppTypography = Typography(
     // 列表主文字（消息预览、菜单项）
     bodyLarge = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
+        fontSize = 15.sp,
+        lineHeight = 21.sp,
     ),
     // 正文 / 气泡文字（行高 1.35）
     bodyMedium = TextStyle(
