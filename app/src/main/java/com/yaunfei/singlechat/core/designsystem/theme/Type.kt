@@ -34,9 +34,9 @@ val AppTypography = Typography(
     bodyLarge = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        lineHeight = 21.sp,
+        lineHeight = 20.sp,
     ),
-    // 正文 / 气泡文字（行高 1.35）
+    // 正文 / 气泡文字（行高 1.35 ≈ 20px）
     bodyMedium = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
@@ -48,16 +48,16 @@ val AppTypography = Typography(
         fontSize = 13.sp,
         lineHeight = 18.sp,
     ),
-    // 时间戳、辅助说明
+    // 时间戳（列表行右侧时间） - 设计稿 14sp
     labelMedium = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         lineHeight = 18.sp,
     ),
-    // Tab Bar 标签
+    // Tab Bar 标签 - 设计稿 10sp
     labelSmall = TextStyle(
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
+        fontSize = 10.sp,
         lineHeight = 14.sp,
     ),
 )

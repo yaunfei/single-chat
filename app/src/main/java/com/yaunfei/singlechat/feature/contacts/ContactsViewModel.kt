@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yaunfei.singlechat.core.chat.ChatEngine
 import com.yaunfei.singlechat.core.model.Contact
+import com.yaunfei.singlechat.core.model.GroupInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,33 +26,57 @@ class ContactsViewModel @Inject constructor(
     private val engine: ChatEngine,
 ) : ViewModel() {
 
-    private val query = MutableStateFlow("")
-    private val contacts = MutableStateFlow<List<Contact>>(emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    val uiState: StateFlow<ContactsUiState> = combine(contacts, query) { list, keyword ->
+    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
+    val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
+
+    val filteredContacts: StateFlow<List<Contact>> = combine(_contacts, _searchQuery) { list, keyword ->
         if (keyword.isBlank()) {
-            ContactsUiState(list, keyword)
+            list
         } else {
-            ContactsUiState(
-                contacts = list.filter { contact ->
-                    contact.name.contains(keyword, ignoreCase = true) ||
-                        contact.id.contains(keyword, ignoreCase = true)
-                },
-                query = keyword,
-            )
+            list.filter { contact ->
+                contact.name.contains(keyword, ignoreCase = true) ||
+                    contact.id.contains(keyword, ignoreCase = true)
+            }
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ContactsUiState(),
+        initialValue = emptyList(),
     )
 
+    // 常用联系人（取前 4 个）
+    val frequentlyUsed: StateFlow<List<Contact>> = _contacts
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+
+    // 群聊（演示数据）
+    private val _groups = MutableStateFlow<List<GroupInfo>>(emptyList())
+    val groups: StateFlow<List<GroupInfo>> = _groups.asStateFlow()
+
     init {
-        viewModelScope.launch { contacts.value = engine.availableContacts() }
+        viewModelScope.launch {
+            val loaded = engine.availableContacts()
+            _contacts.value = loaded
+            // 模拟群聊数据
+            _groups.value = listOf(
+                GroupInfo("g1", "产品设计组", 8),
+                GroupInfo("g2", "设计灵感", 12),
+            )
+        }
+    }
+
+    fun setSearchQuery(value: String) {
+        _searchQuery.value = value
     }
 
     fun setQuery(value: String) {
-        query.value = value
+        _searchQuery.value = value
     }
 
     fun createConversation(contact: Contact, onCreated: (String) -> Unit) {
@@ -69,6 +94,17 @@ class ContactsViewModel @Inject constructor(
                     Contact(id = peerId, name = peerId, bio = "通过用户 ID 发起"),
                 ),
             )
+        }
+    }
+
+    fun addContactById(rawPeerId: String) {
+        val peerId = rawPeerId.trim()
+        if (peerId.isEmpty()) return
+        viewModelScope.launch {
+            val newContact = Contact(id = peerId, name = peerId, bio = "新的联系人")
+            if (_contacts.value.none { it.id == peerId }) {
+                _contacts.update { it + newContact }
+            }
         }
     }
 }

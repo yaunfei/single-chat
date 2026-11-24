@@ -60,4 +60,12 @@ data class Contact(
     val id: String,
     val name: String,
     val bio: String,
+    val signature: String? = null,
+)
+
+/** 群聊数据（通讯录页用） */
+data class GroupInfo(
+    val id: String,
+    val name: String,
+    val memberCount: Int,
 )

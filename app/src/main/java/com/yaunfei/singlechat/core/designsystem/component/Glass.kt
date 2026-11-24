@@ -20,6 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,10 +38,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yaunfei.singlechat.core.designsystem.theme.Accent
+import com.yaunfei.singlechat.core.designsystem.theme.FillTertiary
 import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.core.designsystem.theme.isDark
 import dev.chrisbanes.haze.HazeState
@@ -65,8 +70,8 @@ fun Modifier.liquidGlassSource(state: HazeState): Modifier = this.hazeSource(sta
 /**
  * 液态玻璃（Haze 真实背景模糊 + 边缘高光）。
  *
- * tint 刻意保持极低不透明度：颜色应主要来自背后的模糊内容，而不是玻璃本身。
- * 无 Haze 状态时（例如未接入的页面）回退为半透明填充，保证不会隐形。
+ * tint 刻意保持极低不透明度（8%–25%）：颜色应主要来自背后的模糊内容，而不是玻璃本身。
+ * 无 Haze 状态时回退为半透明填充，保证不会隐形。
  */
 @Composable
 fun Modifier.liquidGlass(
@@ -78,10 +83,11 @@ fun Modifier.liquidGlass(
 ): Modifier {
     val dark = MaterialTheme.colorScheme.isDark
     val haze = hazeState
+    // 默认 tint：设计稿 8% 白（极轻），Haze 从背景采样真实颜色
     val glassTint = tint ?: if (dark) {
         Color(0xD91C1C1E)
     } else {
-        Color.White.copy(alpha = 0.72f)
+        Color.White.copy(alpha = 0.08f)
     }
 
     val body = this
@@ -111,9 +117,9 @@ fun Modifier.liquidGlass(
     return body.border(
         width = 1.dp,
         brush = Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.45f),
-            0.45f to Color.White.copy(alpha = 0.10f),
-            1f to Color.White.copy(alpha = 0.30f),
+            0f to Color.White.copy(alpha = 0.65f),
+            0.5f to Color.White.copy(alpha = 0.20f),
+            1f to Color.White.copy(alpha = 0.55f),
         ),
         shape = shape,
     )
@@ -138,8 +144,9 @@ fun GlassIconButton(
             .liquidGlass(
                 shape = RoundedCornerShape(size / 2),
                 hazeState = hazeState,
-                tint = if (dark) Color(0xCC2C2C2E) else Color.White.copy(alpha = 0.90f),
-                blurRadius = 14.dp,
+                // 图标按钮：20% 白 tint（DESIGN-SPEC §3.2）
+                tint = if (dark) Color(0xCC2C2C2E) else Color.White.copy(alpha = 0.20f),
+                blurRadius = 16.dp,
                 elevation = 5.dp,
             )
             .clickable(onClick = onClick),
@@ -183,7 +190,8 @@ fun GlassTabBar(
                 .liquidGlass(
                     shape = capsuleShape,
                     hazeState = hazeState,
-                    tint = if (dark) Color(0xD91C1C1E) else Color.White.copy(alpha = 0.72f),
+                    // Tab Bar 胶囊：8% 白 tint（DESIGN-SPEC §3.2）
+                    tint = if (dark) Color(0xD91C1C1E) else Color.White.copy(alpha = 0.08f),
                     blurRadius = 30.dp,
                     elevation = 12.dp,
                 ),
@@ -206,7 +214,7 @@ fun GlassTabBar(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp, vertical = 7.dp),
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val selected = index == selectedIndex
@@ -224,15 +232,16 @@ fun GlassTabBar(
                                     .fillMaxWidth()
                                     .fillMaxHeight()
                                     .liquidGlass(
-                                        shape = RoundedCornerShape(22.dp),
+                                        shape = RoundedCornerShape(23.dp),
                                         hazeState = hazeState,
+                                        // 选中凸起：25% 白 tint（DESIGN-SPEC §3.2）
                                         tint = if (dark) {
                                             Color(0xF02C2C2E)
                                         } else {
-                                            Color.White.copy(alpha = 0.92f)
+                                            Color.White.copy(alpha = 0.25f)
                                         },
                                         blurRadius = 18.dp,
-                                        elevation = 3.dp,
+                                        elevation = 4.dp,
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -257,10 +266,11 @@ private fun TabContent(tab: GlassTab, tint: Color) {
             tint = tint,
             modifier = Modifier.size(22.dp),
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(3.dp))
         Text(
             text = tab.label,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
+            fontWeight = if (tint == Accent) FontWeight.SemiBold else FontWeight.Medium,
             color = tint,
             maxLines = 1,
         )
@@ -280,7 +290,7 @@ fun SolidSearchField(
             .fillMaxWidth()
             .height(38.dp)
             .clip(RoundedCornerShape(11.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(FillTertiary)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -329,4 +339,28 @@ fun SolidSearchField(
             }
         }
     }
+}
+
+// ——— 三个主 Tab 的图标 ———
+val MainTabs = listOf(
+    GlassTab("消息", Icons.Outlined.ChatBubbleOutline),
+    GlassTab("通讯录", Icons.Outlined.People),
+    GlassTab("我的", Icons.Outlined.Person),
+)
+
+/** 应用级玻璃 Tab Bar（跨页面复用）。 */
+@Composable
+fun MainGlassTabBar(
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    GlassTabBar(
+        tabs = MainTabs,
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
+        modifier = modifier,
+        hazeState = hazeState,
+    )
 }

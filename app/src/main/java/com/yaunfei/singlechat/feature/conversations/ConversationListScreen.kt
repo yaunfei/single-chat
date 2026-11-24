@@ -26,7 +26,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
@@ -58,11 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.yaunfei.singlechat.core.chat.ChatConnectionState
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
-import com.yaunfei.singlechat.core.designsystem.component.GlassTab
-import com.yaunfei.singlechat.core.designsystem.component.GlassTabBar
+import com.yaunfei.singlechat.core.designsystem.component.MainGlassTabBar
 import com.yaunfei.singlechat.core.designsystem.component.SolidSearchField
 import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
 import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
@@ -73,28 +71,6 @@ import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
 import com.yaunfei.singlechat.core.util.formatConversationTime
 import dev.chrisbanes.haze.HazeState
-
-val MainTabs = listOf(
-    GlassTab("消息", Icons.Outlined.ChatBubbleOutline),
-    GlassTab("通讯录", Icons.Outlined.People),
-    GlassTab("我的", Icons.Outlined.Person),
-)
-
-@Composable
-fun MainGlassTabBar(
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    hazeState: HazeState? = null,
-) {
-    GlassTabBar(
-        tabs = MainTabs,
-        selectedIndex = selectedIndex,
-        onSelect = onSelect,
-        modifier = modifier,
-        hazeState = hazeState,
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,7 +94,7 @@ fun ConversationListScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
-        // Header：大标题 + 玻璃新建按钮（DESIGN-SPEC §2.1）
+        // Header：大标题 + 玻璃筛选按钮（DESIGN-SPEC §2.1）
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -132,33 +108,18 @@ fun ConversationListScreen(
             )
             Spacer(Modifier.weight(1f))
             GlassIconButton(
-                icon = Icons.Filled.FilterList,
-                contentDescription = "新对话",
+                icon = Icons.Filled.Tune,
+                contentDescription = "筛选",
                 onClick = { showNewChat = true },
+                hazeState = hazeState,
             )
         }
-
-        // 连接状态（调试用，13sp 次要文字）
-        val unread = state.conversations.sumOf { it.unreadCount }
-        Text(
-            text = when {
-                unread > 0 -> "$unread 条未读"
-                connectionState == ChatConnectionState.ONLINE -> "云端已连接"
-                connectionState == ChatConnectionState.CONNECTING -> "正在连接云端…"
-                connectionState == ChatConnectionState.FAILED ->
-                    connectionDetail ?: "云端未连接 · 我的页面改服务器地址"
-                else -> "离线 · 消息将在恢复后送达"
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = TextSecondary,
-            modifier = Modifier.padding(start = 16.dp, top = 2.dp),
-        )
 
         SolidSearchField(
             value = state.query,
             onValueChange = viewModel::setQuery,
             placeholder = "搜索",
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp),
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -180,7 +141,7 @@ fun ConversationListScreen(
                         .fillMaxSize()
                         .liquidGlassSource(hazeState),
                     contentPadding = PaddingValues(
-                        top = 8.dp,
+                        top = 4.dp,
                         bottom = 110.dp + navBarBottom,
                     ),
                 ) {
@@ -267,7 +228,7 @@ private fun ConversationRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 76.dp)
+                .heightIn(min = 74.dp)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = { menuExpanded = true },
@@ -279,8 +240,9 @@ private fun ConversationRow(
                 seed = conversation.avatarSeed,
                 name = conversation.title,
                 isGroup = conversation.isGroup,
+                size = 52.dp,
             )
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -298,7 +260,7 @@ private fun ConversationRow(
                         color = TextSecondary,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = conversation.lastMessage,
@@ -349,9 +311,10 @@ private fun ConversationRow(
 private fun UnreadBadge(count: Int) {
     Box(
         modifier = Modifier
-            .size(22.dp)
-            .clip(RoundedCornerShape(11.dp))
-            .background(Accent),
+            .height(18.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Accent)
+            .padding(horizontal = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -360,6 +323,7 @@ private fun UnreadBadge(count: Int) {
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
+            lineHeight = 16.sp,
         )
     }
 }

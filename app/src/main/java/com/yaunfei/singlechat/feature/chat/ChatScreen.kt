@@ -33,13 +33,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,18 +62,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
+import com.yaunfei.singlechat.core.designsystem.component.liquidGlass
 import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
 import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
-import com.yaunfei.singlechat.core.designsystem.component.liquidGlass
 import com.yaunfei.singlechat.core.designsystem.theme.BubbleIncoming
 import com.yaunfei.singlechat.core.designsystem.theme.BubbleOutgoing
 import com.yaunfei.singlechat.core.designsystem.theme.OnlineGreen
@@ -202,10 +203,11 @@ fun ChatScreen(
                     modifier = Modifier.liquidGlass(
                         shape = RoundedCornerShape(22.dp),
                         hazeState = hazeState,
+                        // 设计稿：导航信息胶囊 20% 白 tint
                         tint = if (dark) {
-                            Color(0xD91C1C1E)
+                            Color(0xE62C2C2E)
                         } else {
-                            Color.White.copy(alpha = 0.86f)
+                            Color.White.copy(alpha = 0.20f)
                         },
                         blurRadius = 22.dp,
                         elevation = 4.dp,
@@ -227,7 +229,7 @@ fun ChatScreen(
                                 text = conversation?.title ?: "聊天",
                                 fontSize = 15.sp,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 140.dp),
@@ -248,15 +250,15 @@ fun ChatScreen(
             }
             Spacer(Modifier.width(10.dp))
 
-            // 通话胶囊（视觉占位，暂无通话功能）
+            // 通话胶囊
             Row(
                 modifier = Modifier.liquidGlass(
                     shape = RoundedCornerShape(22.dp),
                     hazeState = hazeState,
                     tint = if (dark) {
-                        Color(0xD91C1C1E)
+                        Color(0xE62C2C2E)
                     } else {
-                        Color.White.copy(alpha = 0.86f)
+                        Color.White.copy(alpha = 0.20f)
                     },
                     blurRadius = 22.dp,
                     elevation = 4.dp,
@@ -302,19 +304,20 @@ fun ChatScreen(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(34.dp)
+                    .height(38.dp)
                     .liquidGlass(
-                        shape = RoundedCornerShape(17.dp),
+                        shape = RoundedCornerShape(19.dp),
                         hazeState = hazeState,
+                        // 输入框：20% 白 tint
                         tint = if (dark) {
                             Color(0xE62C2C2E)
                         } else {
-                            Color.White.copy(alpha = 0.88f)
+                            Color.White.copy(alpha = 0.20f)
                         },
                         blurRadius = 16.dp,
                         elevation = 3.dp,
                     )
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 BasicTextField(
@@ -322,7 +325,7 @@ fun ChatScreen(
                     onValueChange = viewModel::onDraftChange,
                     maxLines = 4,
                     textStyle = TextStyle(
-                        fontSize = 15.sp,
+                        fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurface,
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
@@ -330,8 +333,8 @@ fun ChatScreen(
                     decorationBox = { inner ->
                         if (draft.isEmpty()) {
                             Text(
-                                text = "说点什么…",
-                                fontSize = 15.sp,
+                                text = "iMessage",
+                                fontSize = 16.sp,
                                 color = TextSecondary,
                             )
                         }
@@ -341,7 +344,7 @@ fun ChatScreen(
             }
             Spacer(Modifier.width(10.dp))
             GlassIconButton(
-                icon = if (draft.isNotBlank()) Icons.Filled.Send else Icons.Filled.Mic,
+                icon = if (draft.isNotBlank()) Icons.AutoMirrored.Filled.Send else Icons.Filled.Mic,
                 contentDescription = if (draft.isNotBlank()) "发送" else null,
                 onClick = { if (draft.isNotBlank()) viewModel.send() },
                 size = 34.dp,
@@ -355,7 +358,7 @@ fun ChatScreen(
             )
         }
 
-        // 发送错误 Snackbar，浮在输入栏上方
+        // 发送错误 Snackbar
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -409,9 +412,9 @@ private fun MessageRow(
                     .widthIn(max = 300.dp)
                     .clip(
                         if (mine) {
-                            RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
+                            RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
                         } else {
-                            RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+                            RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
                         },
                     )
                     .background(
@@ -426,14 +429,14 @@ private fun MessageRow(
                 SelectionContainer {
                     Text(
                         text = message.text,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = if (mine) Color.White else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                     )
                 }
             }
             Spacer(Modifier.height(3.dp))
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = formatMessageTime(message.createdAt),
                     style = MaterialTheme.typography.labelMedium,
@@ -517,11 +520,11 @@ private fun TypingRow(conversation: Conversation?, dark: Boolean) {
         Spacer(Modifier.width(8.dp))
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp))
+                .clip(RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp))
                 .background(if (dark) Color(0xFF2C2C2E) else BubbleIncoming)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 val transition = rememberInfiniteTransition(label = "typing")
                 repeat(3) { index ->
                     val alpha by transition.animateFloat(
