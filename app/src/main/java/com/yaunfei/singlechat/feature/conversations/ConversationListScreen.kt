@@ -115,12 +115,7 @@ fun ConversationListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    0f to MaterialTheme.colorScheme.background,
-                    1f to MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                ),
-            )
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
         // Header：大标题 + 玻璃新建按钮（DESIGN-SPEC §2.1）

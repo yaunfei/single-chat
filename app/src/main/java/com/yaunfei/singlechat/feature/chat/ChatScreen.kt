@@ -203,9 +203,9 @@ fun ChatScreen(
                         shape = RoundedCornerShape(22.dp),
                         hazeState = hazeState,
                         tint = if (dark) {
-                            Color.White.copy(alpha = 0.08f)
+                            Color(0xD91C1C1E)
                         } else {
-                            Color.White.copy(alpha = 0.34f)
+                            Color.White.copy(alpha = 0.86f)
                         },
                         blurRadius = 22.dp,
                         elevation = 4.dp,
@@ -254,9 +254,9 @@ fun ChatScreen(
                     shape = RoundedCornerShape(22.dp),
                     hazeState = hazeState,
                     tint = if (dark) {
-                        Color.White.copy(alpha = 0.08f)
+                        Color(0xD91C1C1E)
                     } else {
-                        Color.White.copy(alpha = 0.34f)
+                        Color.White.copy(alpha = 0.86f)
                     },
                     blurRadius = 22.dp,
                     elevation = 4.dp,
@@ -307,9 +307,9 @@ fun ChatScreen(
                         shape = RoundedCornerShape(17.dp),
                         hazeState = hazeState,
                         tint = if (dark) {
-                            Color.White.copy(alpha = 0.10f)
+                            Color(0xE62C2C2E)
                         } else {
-                            Color.White.copy(alpha = 0.42f)
+                            Color.White.copy(alpha = 0.88f)
                         },
                         blurRadius = 16.dp,
                         elevation = 3.dp,

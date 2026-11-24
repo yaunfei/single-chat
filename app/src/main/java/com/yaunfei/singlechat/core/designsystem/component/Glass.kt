@@ -79,9 +79,9 @@ fun Modifier.liquidGlass(
     val dark = MaterialTheme.colorScheme.isDark
     val haze = hazeState
     val glassTint = tint ?: if (dark) {
-        Color.White.copy(alpha = 0.08f)
+        Color(0xD91C1C1E)
     } else {
-        Color.White.copy(alpha = 0.32f)
+        Color.White.copy(alpha = 0.72f)
     }
 
     val body = this
@@ -111,31 +111,11 @@ fun Modifier.liquidGlass(
     return body.border(
         width = 1.dp,
         brush = Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.80f),
-            0.45f to Color.White.copy(alpha = 0.16f),
-            1f to Color.White.copy(alpha = 0.60f),
+            0f to Color.White.copy(alpha = 0.45f),
+            0.45f to Color.White.copy(alpha = 0.10f),
+            1f to Color.White.copy(alpha = 0.30f),
         ),
         shape = shape,
-    )
-}
-
-/** 顶部镜面高光条：iOS 液态玻璃的标志性反光。 */
-@Composable
-private fun BoxScope.SpecularHighlight(shape: Shape) {
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopCenter)
-            .padding(top = 1.dp)
-            .fillMaxWidth(0.82f)
-            .height(1.dp)
-            .background(
-                brush = Brush.horizontalGradient(
-                    0f to Color.Transparent,
-                    0.5f to Color.White.copy(alpha = 0.85f),
-                    1f to Color.Transparent,
-                ),
-                shape = RoundedCornerShape(percent = 50),
-            ),
     )
 }
 
@@ -151,12 +131,14 @@ fun GlassIconButton(
     iconTint: Color = MaterialTheme.colorScheme.primary,
     hazeState: HazeState? = null,
 ) {
+    val dark = MaterialTheme.colorScheme.isDark
     Box(
         modifier = modifier
             .size(size)
             .liquidGlass(
                 shape = RoundedCornerShape(size / 2),
                 hazeState = hazeState,
+                tint = if (dark) Color(0xCC2C2C2E) else Color.White.copy(alpha = 0.90f),
                 blurRadius = 14.dp,
                 elevation = 5.dp,
             )
@@ -201,14 +183,12 @@ fun GlassTabBar(
                 .liquidGlass(
                     shape = capsuleShape,
                     hazeState = hazeState,
-                    tint = if (dark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
+                    tint = if (dark) Color(0xD91C1C1E) else Color.White.copy(alpha = 0.72f),
                     blurRadius = 30.dp,
                     elevation = 12.dp,
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            SpecularHighlight(capsuleShape)
-
             // 底部内阴影：让胶囊有玻璃厚度。
             Box(
                 modifier = Modifier
@@ -244,9 +224,9 @@ fun GlassTabBar(
                                         shape = RoundedCornerShape(23.dp),
                                         hazeState = hazeState,
                                         tint = if (dark) {
-                                            Color.White.copy(alpha = 0.10f)
+                                            Color(0xF02C2C2E)
                                         } else {
-                                            Color.White.copy(alpha = 0.42f)
+                                            Color.White.copy(alpha = 0.92f)
                                         },
                                         blurRadius = 18.dp,
                                         elevation = 3.dp,
