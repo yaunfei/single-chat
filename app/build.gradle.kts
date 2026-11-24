@@ -21,8 +21,8 @@ android {
         applicationId = "com.yaunfei.singlechat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
 
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
         buildConfigField("int", "IM_SDK_APP_ID", "1600174706")
@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.coroutines.android)
 
     implementation(libs.tencent.imsdk)
+    implementation(libs.haze)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

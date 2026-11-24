@@ -70,6 +70,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
+import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
+import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
 import com.yaunfei.singlechat.core.designsystem.component.liquidGlass
 import com.yaunfei.singlechat.core.designsystem.theme.BubbleIncoming
 import com.yaunfei.singlechat.core.designsystem.theme.BubbleOutgoing
@@ -124,6 +126,7 @@ fun ChatScreen(
 
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val hazeState = rememberLiquidGlass()
 
     Box(
         modifier = Modifier
@@ -135,6 +138,7 @@ fun ChatScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
+                .liquidGlassSource(hazeState)
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -185,6 +189,7 @@ fun ChatScreen(
                 onClick = onBack,
                 size = 34.dp,
                 iconSize = 22.dp,
+                hazeState = hazeState,
             )
             Spacer(Modifier.width(10.dp))
 
@@ -196,7 +201,13 @@ fun ChatScreen(
                 Box(
                     modifier = Modifier.liquidGlass(
                         shape = RoundedCornerShape(22.dp),
-                        tint = if (dark) Color(0xCC2C2C2E) else Color(0xB3FFFFFF),
+                        hazeState = hazeState,
+                        tint = if (dark) {
+                            Color.White.copy(alpha = 0.08f)
+                        } else {
+                            Color.White.copy(alpha = 0.34f)
+                        },
+                        blurRadius = 22.dp,
                         elevation = 4.dp,
                     ),
                 ) {
@@ -241,7 +252,13 @@ fun ChatScreen(
             Row(
                 modifier = Modifier.liquidGlass(
                     shape = RoundedCornerShape(22.dp),
-                    tint = if (dark) Color(0xCC2C2C2E) else Color(0xB3FFFFFF),
+                    hazeState = hazeState,
+                    tint = if (dark) {
+                        Color.White.copy(alpha = 0.08f)
+                    } else {
+                        Color.White.copy(alpha = 0.34f)
+                    },
+                    blurRadius = 22.dp,
                     elevation = 4.dp,
                 ).padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -279,6 +296,7 @@ fun ChatScreen(
                 size = 34.dp,
                 iconSize = 18.dp,
                 iconTint = MaterialTheme.colorScheme.primary,
+                hazeState = hazeState,
             )
             Spacer(Modifier.width(10.dp))
             Box(
@@ -287,7 +305,13 @@ fun ChatScreen(
                     .height(34.dp)
                     .liquidGlass(
                         shape = RoundedCornerShape(17.dp),
-                        tint = if (dark) Color(0xD92C2C2E) else Color(0xCCFFFFFF),
+                        hazeState = hazeState,
+                        tint = if (dark) {
+                            Color.White.copy(alpha = 0.10f)
+                        } else {
+                            Color.White.copy(alpha = 0.42f)
+                        },
+                        blurRadius = 16.dp,
                         elevation = 3.dp,
                     )
                     .padding(horizontal = 12.dp),
@@ -327,6 +351,7 @@ fun ChatScreen(
                 } else {
                     TextSecondary
                 },
+                hazeState = hazeState,
             )
         }
 

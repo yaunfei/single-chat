@@ -12,6 +12,7 @@ room = "2.6.1"
 datastore = "1.1.1"
 coroutines = "1.9.0"
 tencentImsdk = "8.7.7201"
+haze = "1.2.2"
 junit = "4.13.2"
 
 [libraries]
@@ -43,6 +44,7 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 tencent-imsdk = { module = "com.tencent.imsdk:imsdk-plus", version.ref = "tencentImsdk" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

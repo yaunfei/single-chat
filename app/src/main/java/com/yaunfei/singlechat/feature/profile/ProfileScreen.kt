@@ -49,6 +49,8 @@ import com.yaunfei.singlechat.BuildConfig
 import com.yaunfei.singlechat.core.chat.ChatConnectionState
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
+import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
+import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
 import com.yaunfei.singlechat.core.designsystem.theme.OnlineGreen
 import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.core.model.Session
@@ -72,6 +74,7 @@ fun ProfileScreen(
     var showServerDialog by remember { mutableStateOf(false) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val hazeState = rememberLiquidGlass()
 
     Column(
         modifier = Modifier
@@ -103,6 +106,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .liquidGlassSource(hazeState)
                     .padding(horizontal = 16.dp),
             ) {
                 Spacer(Modifier.height(16.dp))
@@ -208,6 +212,7 @@ fun ProfileScreen(
                 selectedIndex = 2,
                 onSelect = onTabSelect,
                 modifier = Modifier.align(Alignment.BottomCenter),
+                hazeState = hazeState,
             )
         }
     }

@@ -47,6 +47,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
 import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
 import com.yaunfei.singlechat.core.designsystem.component.SolidSearchField
+import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
+import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
 import com.yaunfei.singlechat.core.designsystem.theme.Separator
 import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.feature.conversations.MainGlassTabBar
@@ -60,6 +62,7 @@ fun ContactsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val hazeState = rememberLiquidGlass()
 
     Column(
         modifier = Modifier
@@ -104,7 +107,9 @@ fun ContactsScreen(
                 )
 
                 else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .liquidGlassSource(hazeState),
                     contentPadding = PaddingValues(
                         top = 16.dp,
                         bottom = 110.dp + navBarBottom,
@@ -159,6 +164,7 @@ fun ContactsScreen(
                 selectedIndex = 1,
                 onSelect = onTabSelect,
                 modifier = Modifier.align(Alignment.BottomCenter),
+                hazeState = hazeState,
             )
         }
     }

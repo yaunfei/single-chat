@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,40 +41,102 @@ import androidx.compose.ui.unit.sp
 import com.yaunfei.singlechat.core.designsystem.theme.Accent
 import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.core.designsystem.theme.isDark
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 
 /**
- * 液态玻璃（静态实现，DESIGN-SPEC §3.4 方案 1）：
- * 半透明底 + 顶部到底部的渐变高光边 + 柔和投影。
- * 玻璃只用于「悬浮在内容之上的功能层」，内容层（气泡/卡片/列表）保持实色。
+ * 页面级玻璃状态。
+ *
+ * 玻璃的质感来自「模糊背后的真实内容」，所以页面必须：
+ * 1. 用 [rememberLiquidGlass] 创建状态；
+ * 2. 把滚动内容标记为 [liquidGlassSource]；
+ * 3. 把状态传给玻璃组件。
+ * 否则玻璃背后没有任何内容可折射，看起来就是一块白板（DESIGN-SPEC §3.5）。
+ */
+@Composable
+fun rememberLiquidGlass(): HazeState = remember { HazeState() }
+
+/** 把滚动内容标记为玻璃的采样源（必须在玻璃元素之前绘制）。 */
+fun Modifier.liquidGlassSource(state: HazeState): Modifier = this.hazeSource(state)
+
+/**
+ * 液态玻璃（Haze 真实背景模糊 + 边缘高光）。
+ *
+ * tint 刻意保持极低不透明度：颜色应主要来自背后的模糊内容，而不是玻璃本身。
+ * 无 Haze 状态时（例如未接入的页面）回退为半透明填充，保证不会隐形。
  */
 @Composable
 fun Modifier.liquidGlass(
     shape: Shape,
+    hazeState: HazeState? = null,
     tint: Color? = null,
+    blurRadius: Dp = 18.dp,
     elevation: Dp = 6.dp,
 ): Modifier {
     val dark = MaterialTheme.colorScheme.isDark
-    val baseTint = tint ?: if (dark) Color(0xCC2C2C2E) else Color(0x99FFFFFF)
-    return this
+    val haze = hazeState
+    val glassTint = tint ?: if (dark) {
+        Color.White.copy(alpha = 0.08f)
+    } else {
+        Color.White.copy(alpha = 0.32f)
+    }
+
+    val body = this
         .shadow(
             elevation = elevation,
             shape = shape,
-            ambientColor = Color(0x300B1220),
-            spotColor = Color(0x300B1220),
+            ambientColor = Color(0x330B1220),
+            spotColor = Color(0x400B1220),
         )
         .clip(shape)
-        .background(baseTint)
-        .border(
-            width = 1.dp,
-            brush = Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.65f),
-                    Color.White.copy(alpha = 0.20f),
-                    Color.White.copy(alpha = 0.55f),
+        .let { base ->
+            if (haze != null) {
+                base.hazeEffect(
+                    state = haze,
+                    style = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        tints = listOf(HazeTint(glassTint)),
+                        blurRadius = blurRadius,
+                        noiseFactor = 0.02f,
+                    ),
+                )
+            } else {
+                base.background(if (dark) Color(0xE62C2C2E) else glassTint)
+            }
+        }
+
+    return body.border(
+        width = 1.dp,
+        brush = Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.80f),
+            0.45f to Color.White.copy(alpha = 0.16f),
+            1f to Color.White.copy(alpha = 0.60f),
+        ),
+        shape = shape,
+    )
+}
+
+/** 顶部镜面高光条：iOS 液态玻璃的标志性反光。 */
+@Composable
+private fun BoxScope.SpecularHighlight(shape: Shape) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .padding(top = 1.dp)
+            .fillMaxWidth(0.82f)
+            .height(1.dp)
+            .background(
+                brush = Brush.horizontalGradient(
+                    0f to Color.Transparent,
+                    0.5f to Color.White.copy(alpha = 0.85f),
+                    1f to Color.Transparent,
                 ),
+                shape = RoundedCornerShape(percent = 50),
             ),
-            shape = shape,
-        )
+    )
 }
 
 /** 玻璃圆形图标钮（DESIGN-SPEC §3.2 图标按钮档）。 */
@@ -83,11 +149,17 @@ fun GlassIconButton(
     size: Dp = 40.dp,
     iconSize: Dp = 20.dp,
     iconTint: Color = MaterialTheme.colorScheme.primary,
+    hazeState: HazeState? = null,
 ) {
     Box(
         modifier = modifier
             .size(size)
-            .liquidGlass(shape = RoundedCornerShape(size / 2))
+            .liquidGlass(
+                shape = RoundedCornerShape(size / 2),
+                hazeState = hazeState,
+                blurRadius = 14.dp,
+                elevation = 5.dp,
+            )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -112,6 +184,7 @@ fun GlassTabBar(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     val dark = MaterialTheme.colorScheme.isDark
     Box(
@@ -120,17 +193,36 @@ fun GlassTabBar(
             .navigationBarsPadding()
             .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
     ) {
+        val capsuleShape = RoundedCornerShape(29.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
                 .liquidGlass(
-                    shape = RoundedCornerShape(29.dp),
-                    tint = if (dark) Color(0xD91C1C1E) else Color(0xB3FFFFFF),
-                    elevation = 10.dp,
+                    shape = capsuleShape,
+                    hazeState = hazeState,
+                    tint = if (dark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
+                    blurRadius = 30.dp,
+                    elevation = 12.dp,
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            SpecularHighlight(capsuleShape)
+
+            // 底部内阴影：让胶囊有玻璃厚度。
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            1f to Color(0x140B1220),
+                        ),
+                    ),
+            )
+
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -150,8 +242,14 @@ fun GlassTabBar(
                                 modifier = Modifier
                                     .liquidGlass(
                                         shape = RoundedCornerShape(23.dp),
-                                        tint = if (dark) Color(0xF02C2C2E) else Color(0xF2FFFFFF),
-                                        elevation = 2.dp,
+                                        hazeState = hazeState,
+                                        tint = if (dark) {
+                                            Color.White.copy(alpha = 0.10f)
+                                        } else {
+                                            Color.White.copy(alpha = 0.42f)
+                                        },
+                                        blurRadius = 18.dp,
+                                        elevation = 3.dp,
                                     )
                                     .padding(horizontal = 18.dp, vertical = 5.dp),
                             ) {

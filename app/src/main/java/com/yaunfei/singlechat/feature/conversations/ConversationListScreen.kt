@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,12 +64,15 @@ import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
 import com.yaunfei.singlechat.core.designsystem.component.GlassTab
 import com.yaunfei.singlechat.core.designsystem.component.GlassTabBar
 import com.yaunfei.singlechat.core.designsystem.component.SolidSearchField
+import com.yaunfei.singlechat.core.designsystem.component.liquidGlassSource
+import com.yaunfei.singlechat.core.designsystem.component.rememberLiquidGlass
 import com.yaunfei.singlechat.core.designsystem.theme.Accent
 import com.yaunfei.singlechat.core.designsystem.theme.Separator
 import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
 import com.yaunfei.singlechat.core.util.formatConversationTime
+import dev.chrisbanes.haze.HazeState
 
 val MainTabs = listOf(
     GlassTab("消息", Icons.Filled.Chat),
@@ -81,8 +85,15 @@ fun MainGlassTabBar(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
-    GlassTabBar(tabs = MainTabs, selectedIndex = selectedIndex, onSelect = onSelect, modifier = modifier)
+    GlassTabBar(
+        tabs = MainTabs,
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
+        modifier = modifier,
+        hazeState = hazeState,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,11 +110,17 @@ fun ConversationListScreen(
     var showNewChat by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Conversation?>(null) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val hazeState = rememberLiquidGlass()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(
+                Brush.verticalGradient(
+                    0f to MaterialTheme.colorScheme.background,
+                    1f to MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ),
+            )
             .statusBarsPadding(),
     ) {
         // Header：大标题 + 玻璃新建按钮（DESIGN-SPEC §2.1）
@@ -164,7 +181,9 @@ fun ConversationListScreen(
                 )
 
                 else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .liquidGlassSource(hazeState),
                     contentPadding = PaddingValues(
                         top = 8.dp,
                         bottom = 110.dp + navBarBottom,
@@ -188,6 +207,7 @@ fun ConversationListScreen(
                 selectedIndex = 0,
                 onSelect = onTabSelect,
                 modifier = Modifier.align(Alignment.BottomCenter),
+                hazeState = hazeState,
             )
         }
     }
