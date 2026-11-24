@@ -10,40 +10,37 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,15 +58,36 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yaunfei.singlechat.core.chat.ChatConnectionState
 import com.yaunfei.singlechat.core.designsystem.component.Avatar
+import com.yaunfei.singlechat.core.designsystem.component.GlassIconButton
+import com.yaunfei.singlechat.core.designsystem.component.GlassTab
+import com.yaunfei.singlechat.core.designsystem.component.GlassTabBar
+import com.yaunfei.singlechat.core.designsystem.component.SolidSearchField
+import com.yaunfei.singlechat.core.designsystem.theme.Accent
+import com.yaunfei.singlechat.core.designsystem.theme.Separator
+import com.yaunfei.singlechat.core.designsystem.theme.TextSecondary
 import com.yaunfei.singlechat.core.model.Contact
 import com.yaunfei.singlechat.core.model.Conversation
 import com.yaunfei.singlechat.core.util.formatConversationTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+val MainTabs = listOf(
+    GlassTab("消息", Icons.Filled.Chat),
+    GlassTab("通讯录", Icons.Filled.People),
+    GlassTab("我的", Icons.Filled.Person),
+)
+
+@Composable
+fun MainGlassTabBar(
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GlassTabBar(tabs = MainTabs, selectedIndex = selectedIndex, onSelect = onSelect, modifier = modifier)
+}
+
 @Composable
 fun ConversationListScreen(
     onOpenChat: (String) -> Unit,
-    onOpenSettings: () -> Unit,
+    onTabSelect: (Int) -> Unit,
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,114 +96,97 @@ fun ConversationListScreen(
     val connectionDetail by viewModel.connectionDetail.collectAsStateWithLifecycle()
     var showNewChat by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Conversation?>(null) }
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("消息", style = MaterialTheme.typography.titleLarge)
-                        val unread = state.conversations.sumOf { it.unreadCount }
-                        Text(
-                            text = when {
-                                unread > 0 -> "$unread 条未读"
-                                connectionState == ChatConnectionState.ONLINE -> "云端已连接"
-                                connectionState == ChatConnectionState.CONNECTING -> "正在连接云端…"
-                                connectionState == ChatConnectionState.FAILED ->
-                                    connectionDetail ?: "云端未连接 · 检查 server"
-                                else -> "离线"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "设置")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showNewChat = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("新对话") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        },
-    ) { padding ->
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding(),
+    ) {
+        // Header：大标题 + 玻璃新建按钮（DESIGN-SPEC §2.1）
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::setQuery,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                placeholder = { Text("搜索会话") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setQuery("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = "清空")
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(18.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                ),
+            Text(
+                text = "消息",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onBackground,
             )
+            Spacer(Modifier.weight(1f))
+            GlassIconButton(
+                icon = Icons.Filled.Edit,
+                contentDescription = "新对话",
+                onClick = { showNewChat = true },
+            )
+        }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    state.isLoading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                    )
+        // 连接状态（调试用，13sp 次要文字）
+        val unread = state.conversations.sumOf { it.unreadCount }
+        Text(
+            text = when {
+                unread > 0 -> "$unread 条未读"
+                connectionState == ChatConnectionState.ONLINE -> "云端已连接"
+                connectionState == ChatConnectionState.CONNECTING -> "正在连接云端…"
+                connectionState == ChatConnectionState.FAILED ->
+                    connectionDetail ?: "云端未连接 · 我的页面改服务器地址"
+                else -> "离线 · 消息将在恢复后送达"
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
+            modifier = Modifier.padding(start = 16.dp, top = 2.dp),
+        )
 
-                    state.conversations.isEmpty() -> EmptyConversations(
-                        query = state.query,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
+        SolidSearchField(
+            value = state.query,
+            onValueChange = viewModel::setQuery,
+            placeholder = "搜索",
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+        )
 
-                    else -> LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = 12.dp,
-                            end = 12.dp,
-                            top = 4.dp,
-                            bottom = 96.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        items(state.conversations, key = { it.id }) { conversation ->
-                            ConversationRow(
-                                conversation = conversation,
-                                onClick = {
-                                    viewModel.markRead(conversation.id)
-                                    onOpenChat(conversation.id)
-                                },
-                                onMarkRead = { viewModel.markRead(conversation.id) },
-                                onDelete = { pendingDelete = conversation },
-                            )
-                        }
+        Box(modifier = Modifier.weight(1f)) {
+            when {
+                state.isLoading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+
+                state.conversations.isEmpty() -> EmptyConversations(
+                    query = state.query,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 100.dp),
+                )
+
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = 8.dp,
+                        bottom = 110.dp + navBarBottom,
+                    ),
+                ) {
+                    items(state.conversations, key = { it.id }) { conversation ->
+                        ConversationRow(
+                            conversation = conversation,
+                            onClick = {
+                                viewModel.markRead(conversation.id)
+                                onOpenChat(conversation.id)
+                            },
+                            onMarkRead = { viewModel.markRead(conversation.id) },
+                            onDelete = { pendingDelete = conversation },
+                        )
                     }
                 }
             }
+
+            MainGlassTabBar(
+                selectedIndex = 0,
+                onSelect = onTabSelect,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 
@@ -211,11 +210,7 @@ fun ConversationListScreen(
                     }
                 },
             )
-            Spacer(
-                Modifier
-                    .height(12.dp)
-                    .navigationBarsPadding(),
-            )
+            Spacer(Modifier.height(12.dp))
         }
     }
 
@@ -255,12 +250,12 @@ private fun ConversationRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
+                .heightIn(min = 74.dp)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = { menuExpanded = true },
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
@@ -274,49 +269,42 @@ private fun ConversationRow(
                     Text(
                         text = conversation.title,
                         style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (conversation.isPinned) {
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "置顶",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = formatConversationTime(conversation.lastMessageAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary,
                     )
                 }
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = conversation.lastMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     if (conversation.unreadCount > 0) {
                         Spacer(Modifier.width(8.dp))
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ) {
-                            Text(
-                                text = if (conversation.unreadCount > 99) "99+" else conversation.unreadCount.toString(),
-                            )
-                        }
+                        UnreadBadge(conversation.unreadCount)
                     }
                 }
             }
         }
+        HorizontalDivider(
+            color = Separator,
+            thickness = 0.5.dp,
+            modifier = Modifier
+                .padding(start = 82.dp)
+                .align(Alignment.BottomStart),
+        )
 
         DropdownMenu(
             expanded = menuExpanded,
@@ -337,6 +325,25 @@ private fun ConversationRow(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun UnreadBadge(count: Int) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .background(Accent),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (count > 99) "99+" else count.toString(),
+            color = androidx.compose.ui.graphics.Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
     }
 }
 
@@ -362,67 +369,59 @@ private fun NewChatSheet(
         Text(
             text = "输入对方的用户 ID，或从最近联系人中继续。",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = TextSecondary,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
         Spacer(Modifier.height(14.dp))
 
-        Row(
+        OutlinedTextField(
+            value = peerId,
+            onValueChange = { peerId = it.take(64) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            placeholder = { Text("对方用户 ID，如 u_1a2b3c") },
+            singleLine = true,
+            shape = RoundedCornerShape(17.dp),
+        )
+        TextButton(
+            onClick = { onCreateById(peerId) },
+            enabled = peerId.isNotBlank(),
+            modifier = Modifier.padding(start = 24.dp),
         ) {
-            OutlinedTextField(
-                value = peerId,
-                onValueChange = { peerId = it.take(64) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("对方用户 ID，如 u_1a2b3c") },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-            Spacer(Modifier.width(10.dp))
-            Button(
-                onClick = { onCreateById(peerId) },
-                enabled = peerId.isNotBlank(),
-                modifier = Modifier.height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Text("开始")
-            }
+            Text("开始聊天")
         }
 
         if (contacts.isNotEmpty()) {
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = "最近联系人",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = TextSecondary,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
             Spacer(Modifier.height(4.dp))
-            contacts.forEach { contact ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onPick(contact) }
-                        .padding(horizontal = 24.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Avatar(seed = contact.id, name = contact.name, size = 46.dp)
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text(contact.name, style = MaterialTheme.typography.titleMedium)
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                items(contacts, key = { it.id }) { contact ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onPick(contact) }
+                            .padding(vertical = 8.dp),
+                    ) {
+                        Avatar(seed = contact.id, name = contact.name, size = 52.dp)
+                        Spacer(Modifier.height(6.dp))
                         Text(
-                            text = contact.bio,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = contact.name,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -441,26 +440,23 @@ private fun EmptyConversations(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f),
-                        ),
-                    ),
-                ),
-            contentAlignment = Alignment.Center,
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Accent.copy(alpha = 0.1f),
         ) {
-            Text(
-                text = "聊",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .padding(14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "聊",
+                    color = Accent,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
         Spacer(Modifier.height(18.dp))
         Text(
@@ -469,9 +465,13 @@ private fun EmptyConversations(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = if (query.isBlank()) "点右下角，和一个人说说话。" else "换个关键词试试。",
+            text = if (query.isBlank()) {
+                "点右上角，和一个人说说话。"
+            } else {
+                "换个关键词试试。"
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = TextSecondary,
             textAlign = TextAlign.Center,
         )
     }

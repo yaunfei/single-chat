@@ -3,6 +3,7 @@ package com.yaunfei.singlechat.core.designsystem.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,9 +40,10 @@ fun Avatar(
         AvatarPalettes[Math.floorMod(seed.hashCode(), AvatarPalettes.size)]
     }
     Box(
+        // 设计稿：人是正圆，群聊是圆角方块（DESIGN-SPEC §2.3）。
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(size * 0.34f))
+            .clip(if (isGroup) RoundedCornerShape(size * 0.34f) else CircleShape)
             .background(Brush.linearGradient(palette)),
         contentAlignment = Alignment.Center,
     ) {
